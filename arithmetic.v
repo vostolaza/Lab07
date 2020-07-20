@@ -10,14 +10,12 @@ module arithmetic (A, B, opcode, out);
         casex (opcode)
             add: out = A + B;
             sub: out = A - B;
-            slt: begin
-                    if (A[31] ^ B[31])
-                        out = A[31];
-                    else
-                        begin
-                            aux = A-B;
-                            out = aux[31];
-                        end
+            slt: begin if (A[31] ^ B[31])
+                     out = A[31];
+                    else begin
+                        aux = A-B;
+                        out = aux[31];
+                    end
                  end
             default: out = 31'b0;
         endcase
