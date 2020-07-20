@@ -33,16 +33,15 @@ module controller(input  [5:0] op, funct,
                   output [2:0] alucontrol);
 
   wire [1:0] aluop;
+  wire       branchonzero;
   wire       branch;
-  wire       beq;
 
   maindec md(op, memtoreg, memwrite, branch,
              alusrc, regdst, regwrite, jump,
-             aluop);
-  assign beq = (op == 6'b000100) ? 1 : 0;
-  aludec  ad(funct, aluop, beq, alucontrol);
+             branchonzero, aluop);
+  aludec  ad(funct, aluop, alucontrol);
 
-  assign pcsrc = branch & zero;
+  assign pcsrc = branch & (branchonzero ^~ zero);
 endmodule
 
 module maindec(input  [5:0] op,
@@ -50,38 +49,38 @@ module maindec(input  [5:0] op,
                output       branch, alusrc,
                output       regdst, regwrite,
                output       jump,
+               output       branchonzero,
                output [1:0] aluop);
 
-  reg [8:0] controls;
+  reg [9:0] controls;
 
   assign {regwrite, regdst, alusrc,
           branch, memwrite,
-          memtoreg, jump, aluop} = controls;
+          memtoreg, jump, branchonzero, aluop} = controls;
 
   always@(*)
     case(op)
-      6'b000000: controls <= 9'b110000010; //Rtype
-      6'b100011: controls <= 9'b101001000; //LW
-      6'b101011: controls <= 9'b001010000; //SW
-      6'b000100: controls <= 9'b000100001; //BEQ
-      6'b001000: controls <= 9'b101000000; //ADDI
-      6'b000010: controls <= 9'b000000100; //J
-      6'b000101: controls <= 9'b000100001; //BNE
-      6'b001101: controls <= 9'b101000011; //ORI
-      default:   controls <= 9'bxxxxxxxxx; //???
+      6'b000000: controls <= 10'b1100000010; //Rtype
+      6'b100011: controls <= 10'b1010010000; //LW
+      6'b101011: controls <= 10'b0010100000; //SW
+      6'b000100: controls <= 10'b0001000101; //BEQ
+      6'b001000: controls <= 10'b1010000000; //ADDI
+      6'b000010: controls <= 10'b0000001000; //J
+      6'b000101: controls <= 10'b0001000001; //BNE
+      6'b001101: controls <= 10'b1010000011; //ORI
+      default:   controls <= 10'bxxxxxxxxxx; //???
     endcase
 endmodule
 
 module aludec(input  [5:0] funct,
               input  [1:0] aluop,
-              input beq,
               output reg [2:0] alucontrol);
 
   always@(*)
     case(aluop)
       2'b00: alucontrol <= 3'b010;  // add
       2'b01: alucontrol <= 3'b110;  // sub, bne
-      2'b11: alucontrol <= 3'b001;  // or
+      2'b11: alucontrol <= 3'b001;  // ori
       default: case(funct)          // 10 RTYPE
           6'b100000: alucontrol <= 3'b010; // ADD
           6'b100010: alucontrol <= 3'b110; // SUB
@@ -93,7 +92,7 @@ module aludec(input  [5:0] funct,
     endcase
 endmodule
 
-module datapath(input         clk, reset,z
+module datapath(input         clk, reset,
                 input         memtoreg, pcsrc,
                 input         alusrc, regdst,
                 input         regwrite, jump,
@@ -130,10 +129,7 @@ module datapath(input         clk, reset,z
   mux2 #(32)  resmux(aluout, readdata,
                      memtoreg, result);
 
-  wire sel;
-  assign sel = instr[31:26] == 6'b001101 ? 1 : 0;
-
-  signext     se(instr[15:0], sel, signimm);
+  signext     se(instr[15:0], instr[31:26], signimm);
 
   // ALU logic
   mux2 #(32)  srcbmux(writedata, signimm, alusrc,

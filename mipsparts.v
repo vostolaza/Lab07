@@ -27,10 +27,10 @@ module sl2(input  [31:0] a,
 endmodule
 
 module signext(input  [15:0] a,
-               input sel,
+               input [5:0] op,
                output [31:0] y);
 
-  assign y = sel ? {16'b0, a} : {{16{a[15]}}, a};
+  assign y = (op == 6'b001101) ? {16'b0, a} : {{16{a[15]}}, a};
 endmodule
 
 module flopr #(parameter WIDTH = 8)
