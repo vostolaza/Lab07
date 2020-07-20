@@ -80,7 +80,7 @@ module aludec(input  [5:0] funct,
   always@(*)
     case(aluop)
       2'b00: alucontrol <= 3'b010;  // add
-      2'b01: alucontrol <= beq ? 3'b011 :  3'b110;  // sub, bne
+      2'b01: alucontrol <= 3'b110;  // sub, bne
       2'b11: alucontrol <= 3'b001;  // or
       default: case(funct)          // 10 RTYPE
           6'b100000: alucontrol <= 3'b010; // ADD
@@ -93,7 +93,7 @@ module aludec(input  [5:0] funct,
     endcase
 endmodule
 
-module datapath(input         clk, reset,
+module datapath(input         clk, reset,z
                 input         memtoreg, pcsrc,
                 input         alusrc, regdst,
                 input         regwrite, jump,
@@ -138,6 +138,10 @@ module datapath(input         clk, reset,
   // ALU logic
   mux2 #(32)  srcbmux(writedata, signimm, alusrc,
                       srcb);
+
+
   alu         alu(.a(srca), .b(srcb), .f(alucontrol),
                   .y(aluout), .zero(zero));
+
+
 endmodule
